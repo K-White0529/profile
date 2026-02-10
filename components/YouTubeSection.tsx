@@ -21,8 +21,8 @@ export default function YouTubeSection() {
       config.youtube.apiKey ||
       process.env.NEXT_PUBLIC_YOUTUBE_API_KEY ||
       "";
-
-    if (!apiKey || !config.youtube.channelId || config.youtube.channelId === "UC_xxxxxxxxxxxxx") {
+      
+    if (!apiKey || !config.youtube.channelId || config.youtube.channelId !== "UCNwXcC76OARf-URWIpmtBYw") {
       setError("YouTube API キーまたはチャンネルIDが未設定です");
       setLoading(false);
       return;
