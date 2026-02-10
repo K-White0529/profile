@@ -43,7 +43,7 @@ export interface ProfileConfig {
 const config: ProfileConfig = {
   displayName: "K_White",
   bio: "",
-  avatarPath: "/resources/favicon.ico",
+  avatarPath: "/favicon.ico",
 
   accounts: [
     {
