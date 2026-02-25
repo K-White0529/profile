@@ -58,10 +58,10 @@
 |---|---|---|---|---|
 | 1 | (header) | Hero | `Hero.tsx` | プロフィールヘッダー |
 | 2 | links | Accounts | `SnsLinks.tsx` | 全サービスへのリンクカード |
-| 3 | x | X (Twitter) | `XTimeline.tsx` | タイムライン埋め込み |
+| 3 | x | X (Twitter) | `XSection.tsx` | プロフィールカード + 固定ポスト |
 | 4 | youtube | YouTube | `YouTubeSection.tsx` | 最新動画一覧 |
 | 5 | bluesky | Bluesky | `BlueskyFeed.tsx` | 最新投稿フィード |
-| 6 | instagram | Instagram | `InstagramPosts.tsx` | 投稿埋め込み |
+| 6 | instagram | Instagram | `InstagramSection.tsx` | プロフィールカード |
 | 7 | github | GitHub | `GitHubSection.tsx` | リポジトリ一覧 + コントリビューション |
 | 8 | qiita | Qiita | `QiitaArticles.tsx` | 最新記事一覧 |
 | 9 | mixi2 | mixi2 | `Mixi2Link.tsx` | プロフィールリンク |
@@ -133,21 +133,29 @@
 
 ### 5.3 X (Twitter) セクション
 
-**コンポーネント**：`XTimeline.tsx`（Client Component）
+**コンポーネント**：`XSection.tsx`（Client Component）
 
-**連携方式**：X タイムライン埋め込みウィジェット（`platform.twitter.com/widgets.js`）
+**連携方式**：Xプロフィール風カード（自前レンダリング）+ 固定ポストの oEmbed 埋め込み
+
+**変更理由**：X のタイムライン埋め込みウィジェットはAPI制限の影響で表示が不安定なため、Xのプロフィール画面を模したカード + 個別ポスト埋め込みに変更した。個別ポストの oEmbed はAPI制限の対象外であり安定して動作する。
 
 **認証**：不要
 
-**表示内容**：
-- ユーザーのタイムラインを埋め込みウィジェットで表示
-- 高さ：500px
-- テーマ：light
-- ヘッダー・フッター・ボーダー非表示（`data-chrome="noheader nofooter noborders"`）
+**データ取得方針**：X APIのFree tierはレート制限が厳しく、またBearer Tokenをクライアントサイドに埋め込むことはセキュリティリスクが高いため、プロフィール情報はすべて `config/profile.ts` に手動で設定する。Xのプロフィールを変更した際は、設定ファイルも合わせて更新する運用とする。
 
-**ローディング**：ウィジェット読み込み中はスケルトンローディング（高さ500px）を表示
+**プロフィールカードデザイン**：Xのプロフィール画面を模したレイアウトとする。
+- ヘッダーバナー：高さ 120px、黒背景（`#000000`）。`config.x.headerImagePath` が設定されている場合はその画像を表示
+- プロフィール画像：幅68px、円形、白ボーダー（3px）、バナー下端から上半分が重なる位置に配置。アバター画像は `config.avatarPath`（共通）を使用。画像がない場合はイニシャル表示
+- 表示名：太字、`stone-900` 色
+- ユーザー名：`@username` 形式、`stone-500` 色
+- 自己紹介文：`config.x.bio` を表示。未設定時は `config.accounts` の説明文にフォールバック。`stone-700` 色
+- プロフィールページへのリンク：カード全体をクリッカブルにし、新しいタブで開く
 
-**スクリプト管理**：`widgets.js` は1度のみ読み込み、既に読み込まれている場合は `twttr.widgets.load()` で再レンダリング
+**固定ポスト**：
+- `config.x.pinnedPostUrls` に登録されたURLの投稿を oEmbed 埋め込みで表示
+- 固定ポストが未設定の場合：プロフィールカードのみ表示
+
+**スクリプト管理**：`platform.twitter.com/widgets.js` は固定ポストがある場合のみ読み込み。既に読み込まれている場合は `twttr.widgets.load()` で再レンダリング
 
 ### 5.4 YouTube セクション
 
@@ -204,21 +212,20 @@ APIキーの保管場所は以下のとおりとする。
 
 ### 5.6 Instagram セクション
 
-**コンポーネント**：`InstagramPosts.tsx`（Client Component）
+**コンポーネント**：`InstagramSection.tsx`（Server Component）
 
-**連携方式**：oEmbed 埋め込み（`instagram.com/embed.js`）
+**連携方式**：Instagramプロフィール風カード（自前レンダリング）
+
+**変更理由**：プライベートアカウントの場合、oEmbed 埋め込みやAPIによるフィード取得はいずれも動作しない。そのため、Instagramのプロフィール画面を模したカード形式に変更した。
 
 **認証**：不要
 
-**表示内容**：
-- `config.instagram.embeddedPostUrls` に登録されたURLの投稿を埋め込み表示
-- 投稿は中央揃え、横幅上限400px
-
-**埋め込みが未設定の場合**：
-- 「投稿の埋め込みは設定ファイルから追加できます。」というメッセージを表示
-- Instagram プロフィールへのリンクを提示
-
-**スクリプト管理**：`embed.js` は1度のみ読み込み。既に読み込まれている場合は `instgrm.Embeds.process()` で再レンダリング。
+**プロフィールカードデザイン**：Instagramのプロフィール画面を模したレイアウトとする。
+- プロフィール画像：幅80px、円形、Instagram特有のグラデーションボーダー（ピンク〜オレンジ〜紫）。画像がない場合はイニシャル表示
+- ユーザー名：太字、ユーザー名の横に鍵アイコン（非公開時）
+- 自己紹介文：`config.accounts` の説明文を表示、`stone-700` 色
+- 非公開アカウント注記：`config.instagram.isPrivate` が true の場合、「このアカウントは非公開です」の注記と鍵アイコンを表示
+- プロフィールページへのリンク：カード全体をクリッカブルにし、新しいタブで開く
 
 ### 5.7 GitHub セクション
 
@@ -360,12 +367,12 @@ profile/
 │   ├── Footer.tsx                # フッター
 │   ├── GitHubSection.tsx         # GitHub リポジトリ + コントリビューション
 │   ├── Hero.tsx                  # プロフィールヘッダー
-│   ├── InstagramPosts.tsx        # Instagram 投稿埋め込み
+│   ├── InstagramSection.tsx      # Instagram プロフィールカード
 │   ├── Mixi2Link.tsx             # mixi2 リンク
 │   ├── QiitaArticles.tsx         # Qiita 記事一覧
 │   ├── SectionWrapper.tsx        # セクション共通ラッパー
 │   ├── SnsLinks.tsx              # リンクカード一覧
-│   ├── XTimeline.tsx             # X タイムライン
+│   ├── XSection.tsx              # X プロフィールカード + 固定ポスト
 │   └── YouTubeSection.tsx        # YouTube 最新動画
 ├── config/
 │   └── profile.ts                # プロフィール設定（一元管理）
@@ -423,10 +430,10 @@ profile/
 
 | サービス | 用途 | 認証 | レート制限 | フォールバック |
 |---|---|---|---|---|
-| X widgets.js | タイムライン埋め込み | 不要 | なし（ウィジェット） | スケルトン表示 |
+| X widgets.js | 固定ポスト oEmbed 埋め込み | 不要 | なし（oEmbed） | プロフィールカードのみ表示 |
 | YouTube Data API v3 | 最新動画取得 | APIキー必要（環境変数で管理、Google Cloud Consoleでリファラ制限+API制限設定） | 10,000ユニット/日 | エラーメッセージ + リンク |
 | bsky-embed (jsdelivr CDN) | Blueskyフィード表示 | 不要 | なし | スケルトン表示 |
-| Instagram embed.js | 投稿埋め込み | 不要 | なし | 未設定メッセージ + リンク |
+| Instagram | プロフィールカード（自前レンダリング） | 不要 | なし | — |
 | GitHub REST API | リポジトリ一覧取得 | 不要 | 60回/時（未認証） | エラーメッセージ |
 | ghchart.rshah.org | コントリビューションカレンダー | 不要 | なし | 画像読み込み失敗時はalt表示 |
 | Qiita API v2 | 記事一覧取得 | 不要 | レート制限あり | エラーメッセージ + リンク |
@@ -440,3 +447,5 @@ profile/
 |---|---|---|
 | 2025-02-10 | 1.0.0 | 初版作成 |
 | 2025-02-10 | 1.0.1 | YouTube APIキー管理方針を追加（第5.4節、第8.1節、第9章）、GitHub Actionsに環境変数注入を追加 |
+| 2025-02-10 | 1.1.0 | Xセクションをタイムライン埋め込みからX風プロフィールカード+固定ポストに変更、InstagramセクションをoEmbed埋め込みからInstagram風プロフィールカードに変更（第3.1節、第5.3節、第5.6節、第7章、第9章） |
+| 2025-02-10 | 1.1.1 | Xプロフィール情報の手動管理方針を明記、`x.bio` プロパティを追加（第5.3節） |

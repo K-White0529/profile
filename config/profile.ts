@@ -33,10 +33,16 @@ export interface ProfileConfig {
   };
   x: {
     username: string;
+    /** Xの自己紹介文（手動設定。未設定時はaccountsのdescriptionにフォールバック） */
+    bio: string;
+    /** 固定ポストのURL一覧（oEmbed埋め込みで表示） */
+    pinnedPostUrls: string[];
+    /** ヘッダーバナー画像のパス（public/からの相対パス、未設定時は黒背景） */
+    headerImagePath: string;
   };
   instagram: {
-    /** 手動で埋め込みたい投稿のURL一覧 */
-    embeddedPostUrls: string[];
+    /** プライベートアカウントかどうか */
+    isPrivate: boolean;
   };
 }
 
@@ -123,14 +129,16 @@ const config: ProfileConfig = {
 
   x: {
     username: "_K_White_",
+    bio: "", // Xの自己紹介文をここに記載（空の場合はaccountsのdescriptionを表示）
+    pinnedPostUrls: [
+      // 埋め込みたいポストのURLをここに追加
+      // 例: "https://x.com/_K_White_/status/1234567890"
+    ],
+    headerImagePath: "/favicon.ico", // public/ に配置したヘッダー画像のパス（例: "/x-header.png"）
   },
 
   instagram: {
-    embeddedPostUrls: [
-      // 埋め込みたいInstagram投稿のURLをここに追加
-      "https://www.instagram.com/_k_white_/p/DIbUjkLTEciGHo5DCWnn5YhACrhYEtwFpjbxDk0/",
-      "https://www.instagram.com/_k_white_/p/C4p3ArWy-eyUvpV-zO36QKBtVus21AOlmjlBOg0/"
-    ],
+    isPrivate: true,
   },
 };
 
