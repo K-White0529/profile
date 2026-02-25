@@ -1,16 +1,58 @@
+"use client";
+
+import { useEffect, useRef } from "react";
 import SectionWrapper from "./SectionWrapper";
 import config from "@/config/profile";
 
 export default function InstagramSection() {
   const account = config.accounts.find((a) => a.id === "instagram");
   const isPrivate = config.instagram.isPrivate;
+  const embeddedUrls = config.instagram.embeddedPostUrls;
+  const hasEmbeds = embeddedUrls.length > 0;
   const basePath = process.env.NODE_ENV === "production" ? "/profile" : "";
   const avatarSrc = config.avatarPath
     ? `${basePath}${config.avatarPath}`
     : "";
 
+  const embedContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hasEmbeds || !embedContainerRef.current) return;
+
+    // 各投稿の blockquote を生成
+    embedContainerRef.current.innerHTML = "";
+    embeddedUrls.forEach((url) => {
+      const blockquote = document.createElement("blockquote");
+      blockquote.className = "instagram-media";
+      blockquote.setAttribute("data-instgrm-captioned", "");
+      blockquote.setAttribute("data-instgrm-permalink", url);
+      blockquote.setAttribute("data-instgrm-version", "14");
+      blockquote.style.maxWidth = "400px";
+      blockquote.style.margin = "0 auto";
+      embedContainerRef.current?.appendChild(blockquote);
+    });
+
+    // Instagram の embed.js を読み込む
+    if (!document.querySelector('script[src*="instagram.com/embed.js"]')) {
+      const script = document.createElement("script");
+      script.src = "https://www.instagram.com/embed.js";
+      script.async = true;
+      document.body.appendChild(script);
+    } else {
+      (
+        window as unknown as {
+          instgrm?: { Embeds?: { process: () => void } };
+        }
+      )?.instgrm?.Embeds?.process();
+    }
+  }, [hasEmbeds, embeddedUrls]);
+
   return (
-    <SectionWrapper id="instagram" title="Instagram" summary="プロフィール">
+    <SectionWrapper
+      id="instagram"
+      title="Instagram"
+      summary={hasEmbeds ? `${embeddedUrls.length} posts` : "プロフィール"}
+    >
       {/* Instagram風プロフィールカード */}
       <a
         href={account?.url}
@@ -102,6 +144,16 @@ export default function InstagramSection() {
           </div>
         </div>
       </a>
+
+      {/* 投稿埋め込み */}
+      {hasEmbeds && (
+        <div
+          ref={embedContainerRef}
+          className="mt-6 space-y-4 flex flex-col items-center"
+        >
+          <div className="skeleton h-[400px] w-full max-w-[400px]" />
+        </div>
+      )}
     </SectionWrapper>
   );
 }

@@ -43,6 +43,8 @@ export interface ProfileConfig {
   instagram: {
     /** プライベートアカウントかどうか */
     isPrivate: boolean;
+    /** 埋め込みたい投稿のURL一覧（oEmbed埋め込みで表示。空配列の場合はプロフィールカードのみ） */
+    embeddedPostUrls: string[];
   };
 }
 
@@ -139,6 +141,10 @@ const config: ProfileConfig = {
 
   instagram: {
     isPrivate: true,
+    embeddedPostUrls: [
+      "https://www.instagram.com/_k_white_/p/DIbUjkLTEciGHo5DCWnn5YhACrhYEtwFpjbxDk0/",
+      "https://www.instagram.com/_k_white_/p/C4p3ArWy-eyUvpV-zO36QKBtVus21AOlmjlBOg0/",
+    ],
   },
 };
 

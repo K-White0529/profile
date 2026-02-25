@@ -61,7 +61,7 @@
 | 3 | x | X (Twitter) | `XSection.tsx` | プロフィールカード + 固定ポスト |
 | 4 | youtube | YouTube | `YouTubeSection.tsx` | 最新動画一覧 |
 | 5 | bluesky | Bluesky | `BlueskyFeed.tsx` | 最新投稿フィード |
-| 6 | instagram | Instagram | `InstagramSection.tsx` | プロフィールカード |
+| 6 | instagram | Instagram | `InstagramSection.tsx` | プロフィールカード + 投稿埋め込み |
 | 7 | github | GitHub | `GitHubSection.tsx` | リポジトリ一覧 + コントリビューション |
 | 8 | qiita | Qiita | `QiitaArticles.tsx` | 最新記事一覧 |
 | 9 | mixi2 | mixi2 | `Mixi2Link.tsx` | プロフィールリンク |
@@ -212,7 +212,7 @@ APIキーの保管場所は以下のとおりとする。
 
 ### 5.6 Instagram セクション
 
-**コンポーネント**：`InstagramSection.tsx`（Server Component）
+**コンポーネント**：`InstagramSection.tsx`（Client Component）
 
 **連携方式**：Instagramプロフィール風カード（自前レンダリング）
 
@@ -226,6 +226,13 @@ APIキーの保管場所は以下のとおりとする。
 - 自己紹介文：`config.accounts` の説明文を表示、`stone-700` 色
 - 非公開アカウント注記：`config.instagram.isPrivate` が true の場合、「このアカウントは非公開です」の注記と鍵アイコンを表示
 - プロフィールページへのリンク：カード全体をクリッカブルにし、新しいタブで開く
+
+**投稿埋め込み**：
+- `config.instagram.embeddedPostUrls` に登録されたURLの投稿を、プロフィールカードの下に oEmbed 埋め込みで表示
+- 投稿は中央揃え、横幅上限 400px
+- URLが未登録（空配列）の場合：プロフィールカードのみ表示
+
+**スクリプト管理**：`instagram.com/embed.js` は埋め込みURLがある場合のみ読み込み。既に読み込まれている場合は `instgrm.Embeds.process()` で再レンダリング
 
 ### 5.7 GitHub セクション
 
@@ -433,7 +440,7 @@ profile/
 | X widgets.js | 固定ポスト oEmbed 埋め込み | 不要 | なし（oEmbed） | プロフィールカードのみ表示 |
 | YouTube Data API v3 | 最新動画取得 | APIキー必要（環境変数で管理、Google Cloud Consoleでリファラ制限+API制限設定） | 10,000ユニット/日 | エラーメッセージ + リンク |
 | bsky-embed (jsdelivr CDN) | Blueskyフィード表示 | 不要 | なし | スケルトン表示 |
-| Instagram | プロフィールカード（自前レンダリング） | 不要 | なし | — |
+| Instagram embed.js | 投稿 oEmbed 埋め込み（URL指定時のみ） | 不要 | なし | プロフィールカードのみ表示 |
 | GitHub REST API | リポジトリ一覧取得 | 不要 | 60回/時（未認証） | エラーメッセージ |
 | ghchart.rshah.org | コントリビューションカレンダー | 不要 | なし | 画像読み込み失敗時はalt表示 |
 | Qiita API v2 | 記事一覧取得 | 不要 | レート制限あり | エラーメッセージ + リンク |
@@ -449,3 +456,4 @@ profile/
 | 2025-02-10 | 1.0.1 | YouTube APIキー管理方針を追加（第5.4節、第8.1節、第9章）、GitHub Actionsに環境変数注入を追加 |
 | 2025-02-10 | 1.1.0 | Xセクションをタイムライン埋め込みからX風プロフィールカード+固定ポストに変更、InstagramセクションをoEmbed埋め込みからInstagram風プロフィールカードに変更（第3.1節、第5.3節、第5.6節、第7章、第9章） |
 | 2025-02-10 | 1.1.1 | Xプロフィール情報の手動管理方針を明記、`x.bio` プロパティを追加（第5.3節） |
+| 2025-02-10 | 1.1.2 | Instagramセクションに投稿埋め込み機能を復元。プロフィールカード + URL指定時の投稿oEmbed埋め込みの併用構成に変更（第3.1節、第5.6節、第9章） |
