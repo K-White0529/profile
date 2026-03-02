@@ -31,6 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build
+        # prebuild スクリプトにより prefetch（YouTube・GitHub・Qiita データ取得）が自動実行される
         run: npm run build
         env:
           NODE_ENV: production

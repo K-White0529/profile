@@ -11,48 +11,44 @@ interface YouTubeVideo {
   publishedAt: string;
 }
 
+interface YouTubeData {
+  videos: YouTubeVideo[];
+  fetchedAt: string;
+  error?: string;
+}
+
 export default function YouTubeSection() {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const apiKey =
-      config.youtube.apiKey ||
-      process.env.NEXT_PUBLIC_YOUTUBE_API_KEY ||
-      "";
-      
-    if (!apiKey || !config.youtube.channelId || config.youtube.channelId !== "UCNwXcC76OARf-URWIpmtBYw") {
-      setError("YouTube API キーまたはチャンネルIDが未設定です");
-      setLoading(false);
-      return;
-    }
+  const basePath = process.env.NODE_ENV === "production" ? "/profile" : "";
 
-    const fetchVideos = async () => {
+  useEffect(() => {
+    const loadData = async () => {
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${config.youtube.channelId}&maxResults=6&order=date&type=video&key=${apiKey}`
-        );
-        if (!res.ok) throw new Error("YouTube API の取得に失敗しました");
-        const data = await res.json();
-        const items: YouTubeVideo[] = data.items.map(
-          (item: { id: { videoId: string }; snippet: { title: string; thumbnails: { medium: { url: string } }; publishedAt: string } }) => ({
-            id: item.id.videoId,
-            title: item.snippet.title,
-            thumbnail: item.snippet.thumbnails.medium.url,
-            publishedAt: item.snippet.publishedAt,
-          })
-        );
-        setVideos(items);
+        const res = await fetch(`${basePath}/data/youtube.json`);
+        if (!res.ok) throw new Error("データの読み込みに失敗しました");
+        const data: YouTubeData = await res.json();
+
+        if (data.error || data.videos.length === 0) {
+          setError(
+            data.error || "YouTube の動画が見つかりませんでした"
+          );
+        } else {
+          setVideos(data.videos);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "取得に失敗しました");
+        setError(
+          err instanceof Error ? err.message : "データの読み込みに失敗しました"
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVideos();
-  }, []);
+    loadData();
+  }, [basePath]);
 
   return (
     <SectionWrapper

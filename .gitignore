@@ -21,6 +21,9 @@ yarn-error.log*
 # Env
 .env
 
+# Prefetch data (generated at build time)
+public/data/
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts

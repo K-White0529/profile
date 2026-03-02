@@ -13,31 +13,45 @@ interface QiitaArticle {
   created_at: string;
 }
 
+interface QiitaData {
+  articles: QiitaArticle[];
+  fetchedAt: string;
+  error?: string;
+}
+
 export default function QiitaArticles() {
   const [articles, setArticles] = useState<QiitaArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const username = config.qiita.username;
+  const basePath = process.env.NODE_ENV === "production" ? "/profile" : "";
 
   useEffect(() => {
-    const fetchArticles = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetch(
-          `https://qiita.com/api/v2/users/${username}/items?per_page=6`
-        );
-        if (!res.ok) throw new Error("Qiita API の取得に失敗しました");
-        const data: QiitaArticle[] = await res.json();
-        setArticles(data);
+        const res = await fetch(`${basePath}/data/qiita.json`);
+        if (!res.ok) throw new Error("データの読み込みに失敗しました");
+        const data: QiitaData = await res.json();
+
+        if (data.error || data.articles.length === 0) {
+          setError(
+            data.error || "Qiita の記事が見つかりませんでした"
+          );
+        } else {
+          setArticles(data.articles);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "取得に失敗しました");
+        setError(
+          err instanceof Error ? err.message : "データの読み込みに失敗しました"
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchArticles();
-  }, [username]);
+    loadData();
+  }, [basePath]);
 
   return (
     <SectionWrapper

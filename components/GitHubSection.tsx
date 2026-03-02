@@ -15,31 +15,45 @@ interface GitHubRepo {
   updated_at: string;
 }
 
+interface GitHubData {
+  repos: GitHubRepo[];
+  fetchedAt: string;
+  error?: string;
+}
+
 export default function GitHubSection() {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const username = config.github.username;
+  const basePath = process.env.NODE_ENV === "production" ? "/profile" : "";
 
   useEffect(() => {
-    const fetchRepos = async () => {
+    const loadData = async () => {
       try {
-        const res = await fetch(
-          `https://api.github.com/users/${username}/repos?sort=updated&per_page=6&type=owner`
-        );
-        if (!res.ok) throw new Error("GitHub API の取得に失敗しました");
-        const data: GitHubRepo[] = await res.json();
-        setRepos(data);
+        const res = await fetch(`${basePath}/data/github.json`);
+        if (!res.ok) throw new Error("データの読み込みに失敗しました");
+        const data: GitHubData = await res.json();
+
+        if (data.error || data.repos.length === 0) {
+          setError(
+            data.error || "GitHub リポジトリが見つかりませんでした"
+          );
+        } else {
+          setRepos(data.repos);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "取得に失敗しました");
+        setError(
+          err instanceof Error ? err.message : "データの読み込みに失敗しました"
+        );
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRepos();
-  }, [username]);
+    loadData();
+  }, [basePath]);
 
   /** 言語ごとの色定義 */
   const langColors: Record<string, string> = {

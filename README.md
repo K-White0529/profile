@@ -15,11 +15,11 @@ SNSアカウント・メディアアカウントの活動を一覧できる個�
 | サービス | 連携方式 |
 |---|---|
 | X (Twitter) | X風プロフィールカード（手動設定）+ 固定ポストのoEmbed埋め込み |
-| YouTube | YouTube Data API v3 |
+| YouTube | YouTube Data API v3（ビルド時プリフェッチ） |
 | Bluesky | bsky-embed Webコンポーネント |
 | Instagram | Instagram風プロフィールカード + 投稿のoEmbed埋め込み（URL指定時） |
-| GitHub | GitHub REST API + ghchart.rshah.org（コントリビューションカレンダー） |
-| Qiita | Qiita API v2 |
+| GitHub | GitHub REST API（ビルド時プリフェッチ）+ ghchart.rshah.org（コントリビューションカレンダー） |
+| Qiita | Qiita API v2（ビルド時プリフェッチ） |
 | mixi2 | プロフィールリンク |
 
 ## セットアップ
@@ -68,6 +68,17 @@ X のプロフィール情報はAPI経由での取得ではなく、手動で `c
 |---|---|
 | `instagram.isPrivate` | プライベートアカウントの場合は `true`（鍵アイコンと非公開注記を表示） |
 | `instagram.embeddedPostUrls` | 埋め込みたい投稿のURL一覧（空配列の場合はプロフィールカードのみ表示） |
+
+## ビルド時データ取得（プリフェッチ）
+
+YouTube・GitHub・Qiita のデータは、ビルド時にAPIから取得してJSONファイルとして出力します。ページ表示時にAPIを呼び出さないため、レート制限の影響を受けません。
+
+```bash
+# 手動実行（ローカル開発時）
+npm run prefetch
+```
+
+`npm run build` 実行時には `prebuild` スクリプトにより自動で実行されます。取得されたデータは `public/data/` に出力されます（`.gitignore` 対象）。
 
 ## ビルド
 

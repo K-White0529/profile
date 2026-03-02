@@ -37,7 +37,7 @@
 - ミドルウェアは使用不可
 - `next/image` の最適化は使用不可（`images.unoptimized: true` で回避）
 
-外部サービスからのデータ取得はすべてクライアントサイドで行う。
+外部サービスからのデータ取得は、レート制限のあるAPIについてはビルド時に実行するプリフェッチスクリプトで取得し、JSONファイルとして静的に配信する（第2.3節参照）。oEmbed埋め込みやWeb Componentによる表示はクライアントサイドで行う。
 
 ### 2.2 GitHub Pages デプロイ構成
 
@@ -45,6 +45,24 @@
 - `basePath` および `assetPrefix` に `/profile` を設定（本番環境のみ）
 - `public/.nojekyll` ファイルにより Jekyll 処理をバイパス
 - GitHub Actions による自動デプロイ（`main` ブランチへの push をトリガー）
+
+### 2.3 ビルド時データ取得（プリフェッチ）
+
+レート制限のある外部API（YouTube、GitHub、Qiita）については、ビルド前に実行するプリフェッチスクリプト（`scripts/fetch-data.ts`）でデータを取得し、`public/data/` ディレクトリにJSONファイルとして出力する。クライアントサイドのコンポーネントはこのJSONファイルを読み込むことで、ページ表示時にAPIを呼び出さない。
+
+**対象サービスと出力ファイル**：
+
+| サービス | APIエンドポイント | 出力ファイル |
+|---|---|---|
+| YouTube | `googleapis.com/youtube/v3/search` | `public/data/youtube.json` |
+| GitHub | `api.github.com/users/{username}/repos` | `public/data/github.json` |
+| Qiita | `qiita.com/api/v2/users/{username}/items` | `public/data/qiita.json` |
+
+**実行タイミング**：
+- ローカル開発時：`npm run prefetch` で手動実行
+- CI/CD：`npm run build` の前に自動実行（`package.json` の `prebuild` スクリプト）
+
+**エラーハンドリング**：各APIの取得は独立して実行し、いずれかのAPIが失敗しても他のAPIの取得は継続する。失敗したAPIについてはエラーログを出力し、空のJSONファイルを生成する。クライアント側は空データを検知し、各サービスのプロフィールページへのリンクをフォールバックとして表示する。
 
 ---
 
@@ -161,7 +179,7 @@
 
 **コンポーネント**：`YouTubeSection.tsx`（Client Component）
 
-**連携方式**：YouTube Data API v3（クライアントサイド fetch）
+**連携方式**：YouTube Data API v3（ビルド時プリフェッチ → `public/data/youtube.json` をクライアントが読み込み）
 
 **認証**：APIキーが必要。環境変数 `NEXT_PUBLIC_YOUTUBE_API_KEY` から取得する（`config.youtube.apiKey` にも設定可能だが非推奨）。
 
@@ -240,9 +258,9 @@ APIキーの保管場所は以下のとおりとする。
 
 **連携方式**：
 1. コントリビューションカレンダー：`ghchart.rshah.org` の画像埋め込み
-2. リポジトリ一覧：GitHub REST API（クライアントサイド fetch）
+2. リポジトリ一覧：GitHub REST API（ビルド時プリフェッチ → `public/data/github.json` をクライアントが読み込み）
 
-**認証**：不要（公開APIのみ使用。レート制限は未認証で60回/時）
+**認証**：不要（公開APIのみ使用。レート制限は未認証で60回/時だが、ビルド時のみの呼び出しのため問題なし）
 
 **API仕様（リポジトリ一覧）**：
 - エンドポイント：`https://api.github.com/users/{username}/repos`
@@ -265,9 +283,9 @@ APIキーの保管場所は以下のとおりとする。
 
 **コンポーネント**：`QiitaArticles.tsx`（Client Component）
 
-**連携方式**：Qiita API v2（クライアントサイド fetch）
+**連携方式**：Qiita API v2（ビルド時プリフェッチ → `public/data/qiita.json` をクライアントが読み込み）
 
-**認証**：不要（公開APIのみ使用）
+**認証**：不要（公開APIのみ使用。ビルド時のみの呼び出しのためレート制限の影響なし）
 
 **API仕様**：
 - エンドポイント：`https://qiita.com/api/v2/users/{username}/items`
@@ -383,8 +401,14 @@ profile/
 │   └── YouTubeSection.tsx        # YouTube 最新動画
 ├── config/
 │   └── profile.ts                # プロフィール設定（一元管理）
+├── scripts/
+│   └── fetch-data.ts             # ビルド時データ取得スクリプト
 ├── public/
 │   ├── .nojekyll                 # Jekyll バイパス
+│   ├── data/                     # ビルド時取得データ（.gitignore対象）
+│   │   ├── youtube.json          # YouTube 最新動画
+│   │   ├── github.json           # GitHub リポジトリ一覧
+│   │   └── qiita.json            # Qiita 記事一覧
 │   └── avatar.png                # アバター画像（任意配置）
 ├── .gitignore
 ├── eslint.config.mjs
@@ -414,7 +438,8 @@ profile/
    - `ubuntu-latest` ランナー
    - Node.js 20 セットアップ
    - `npm ci` で依存関係インストール
-   - `npm run build`（`NODE_ENV=production`）
+   - `npm run prefetch` でビルド時データ取得（YouTube・GitHub・Qiita）
+   - `npm run build`（`NODE_ENV=production`）—— `prebuild` スクリプトにより `prefetch` が自動実行される
    - ビルド時環境変数：`NEXT_PUBLIC_YOUTUBE_API_KEY` を GitHub Actions Secrets から注入
    - `./out` ディレクトリを Pages アーティファクトとしてアップロード
 
@@ -438,12 +463,12 @@ profile/
 | サービス | 用途 | 認証 | レート制限 | フォールバック |
 |---|---|---|---|---|
 | X widgets.js | 固定ポスト oEmbed 埋め込み | 不要 | なし（oEmbed） | プロフィールカードのみ表示 |
-| YouTube Data API v3 | 最新動画取得 | APIキー必要（環境変数で管理、Google Cloud Consoleでリファラ制限+API制限設定） | 10,000ユニット/日 | エラーメッセージ + リンク |
+| YouTube Data API v3 | 最新動画取得（ビルド時プリフェッチ） | APIキー必要（環境変数で管理） | 10,000ユニット/日（ビルド時のみ消費） | 空JSON → リンク表示 |
 | bsky-embed (jsdelivr CDN) | Blueskyフィード表示 | 不要 | なし | スケルトン表示 |
 | Instagram embed.js | 投稿 oEmbed 埋め込み（URL指定時のみ） | 不要 | なし | プロフィールカードのみ表示 |
-| GitHub REST API | リポジトリ一覧取得 | 不要 | 60回/時（未認証） | エラーメッセージ |
+| GitHub REST API | リポジトリ一覧取得（ビルド時プリフェッチ） | 不要 | 60回/時（ビルド時のみ消費） | 空JSON → エラーメッセージ |
 | ghchart.rshah.org | コントリビューションカレンダー | 不要 | なし | 画像読み込み失敗時はalt表示 |
-| Qiita API v2 | 記事一覧取得 | 不要 | レート制限あり | エラーメッセージ + リンク |
+| Qiita API v2 | 記事一覧取得（ビルド時プリフェッチ） | 不要 | レート制限あり（ビルド時のみ消費） | 空JSON → リンク表示 |
 | Google Fonts | Webフォント配信 | 不要 | なし | システムフォントにフォールバック |
 
 ---
@@ -457,3 +482,4 @@ profile/
 | 2025-02-10 | 1.1.0 | Xセクションをタイムライン埋め込みからX風プロフィールカード+固定ポストに変更、InstagramセクションをoEmbed埋め込みからInstagram風プロフィールカードに変更（第3.1節、第5.3節、第5.6節、第7章、第9章） |
 | 2025-02-10 | 1.1.1 | Xプロフィール情報の手動管理方針を明記、`x.bio` プロパティを追加（第5.3節） |
 | 2025-02-10 | 1.1.2 | Instagramセクションに投稿埋め込み機能を復元。プロフィールカード + URL指定時の投稿oEmbed埋め込みの併用構成に変更（第3.1節、第5.6節、第9章） |
+| 2025-02-26 | 1.2.0 | レート制限のあるAPI（YouTube・GitHub・Qiita）をビルド時プリフェッチ方式に変更。`scripts/fetch-data.ts` でデータを取得し `public/data/` にJSONとして出力（第2.1節、第2.3節、第5.4節、第5.7節、第5.8節、第7章、第8.1節、第9章） |
