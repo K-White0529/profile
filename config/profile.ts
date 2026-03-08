@@ -136,7 +136,7 @@ const config: ProfileConfig = {
       // 埋め込みたいポストのURLをここに追加
       // 例: "https://x.com/_K_White_/status/1234567890"
     ],
-    headerImagePath: "/favicon.ico", // public/ に配置したヘッダー画像のパス（例: "/x-header.png"）
+    headerImagePath: "/header.jfif", // public/ に配置したヘッダー画像のパス（例: "/x-header.png"）
   },
 
   instagram: {
